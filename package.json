@@ -1,0 +1,10 @@
+{
+  "name": "heartburn",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Compliments that don't sit right. Webcam -> Claude vision -> a backhanded Valentine, read aloud.",
+  "engines": {
+    "node": ">=18"
+  }
+}
