@@ -153,7 +153,7 @@ const autoT=document.getElementById('autoT');
 const photoBtn=document.getElementById('photoBtn');
 const fileIn=document.getElementById('file');
 
-let voiceOn=true, autoOn=false, busy=false, autoTimer=null, lastUploadB64=null, currentAudio=null;
+let voiceOn=true, autoOn=false, busy=false, autoTimer=null, lastUploadB64=null, currentAudio=null, usedTargets=[];
 
 /* ---------- camera ---------- */
 async function initCamera(){
@@ -178,9 +178,10 @@ function grabFrame(){
 
 /* ---------- the line (server: /api/roast) ---------- */
 async function getValentine(b64){
-  const r=await fetch('/api/roast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});
+  const r=await fetch('/api/roast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64,usedTargets})});
   const data=await r.json();
   if(!r.ok||data.error) throw new Error(data.error||'roast failed');
+  if(data.target){ usedTargets.push(data.target); if(usedTargets.length>12) usedTargets.shift(); }
   return data.line;
 }
 

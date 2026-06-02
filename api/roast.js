@@ -1,6 +1,6 @@
-import { BRIEF } from "../lib/brief.js";
+import { buildPrompt } from "../lib/brief.js";
 
-// POST /api/roast  { image: "<base64 jpeg, no data: prefix>" }  ->  { line }
+// POST /api/roast  { image: "<base64 jpeg, no data: prefix>", usedTargets?: string[] }  ->  { line, target }
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST only" });
@@ -21,6 +21,9 @@ export default async function handler(req, res) {
       return;
     }
 
+    const usedTargets = Array.isArray(body.usedTargets) ? body.usedTargets : [];
+    const prompt = buildPrompt(usedTargets);
+
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -29,8 +32,6 @@ export default async function handler(req, res) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        // Current Sonnet. Swap for claude-haiku-4-5-20251001 to cut cost/latency
-        // on a kiosk, or a current Opus string for maximum bite.
         model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
         max_tokens: 300,
         temperature: 1,
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
             role: "user",
             content: [
               { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
-              { type: "text", text: BRIEF + "\n\nWrite this person's Valentine now. Output only the JSON object." },
+              { type: "text", text: prompt + "\n\nWrite this person's Valentine now. Output only the JSON object." },
             ],
           },
         ],
@@ -59,18 +60,23 @@ export default async function handler(req, res) {
       .trim();
     text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
 
-    let line;
+    let line, target;
     try {
-      line = JSON.parse(text).line;
+      const parsed = JSON.parse(text);
+      line = parsed.line;
+      target = parsed.target;
     } catch (_) {
       const m = text.match(/\{[\s\S]*\}/);
       if (m) {
-        try { line = JSON.parse(m[0]).line; } catch (__) {}
+        try { const parsed = JSON.parse(m[0]); line = parsed.line; target = parsed.target; } catch (__) {}
       }
       if (!line) line = text.replace(/^["']|["']$/g, "");
     }
 
-    res.status(200).json({ line: line || "Words fail me. Which, looking at you, is a mercy." });
+    res.status(200).json({
+      line: line || "Words fail me. Which, looking at you, is a mercy.",
+      target: target || null,
+    });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
