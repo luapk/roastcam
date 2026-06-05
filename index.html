@@ -255,7 +255,22 @@ async function getValentine(b64){
 }
 
 /* ---------- voice (server: /api/voice, browser fallback) ---------- */
-function stopAudio(){ if(currentAudio){currentAudio.pause();currentAudio=null;} if('speechSynthesis' in window) speechSynthesis.cancel(); }
+// Unlock the audio context on the first user gesture so playback works after the async fetch.
+let audioUnlocked=false;
+function unlockAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked=true;
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const buf=ctx.createBuffer(1,1,22050);
+    const src=ctx.createBufferSource();
+    src.buffer=buf; src.connect(ctx.destination); src.start(0);
+    setTimeout(()=>ctx.close(),500);
+  }catch(_){}
+}
+document.addEventListener('click', unlockAudio, {once:true});
+
+function stopAudio(){ if(currentAudio){currentAudio.pause();currentAudio.src='';currentAudio=null;} if('speechSynthesis' in window) speechSynthesis.cancel(); }
 let cachedVoices=[];
 function loadVoices(){ cachedVoices=speechSynthesis.getVoices(); }
 if('speechSynthesis' in window){ loadVoices(); speechSynthesis.onvoiceschanged=loadVoices; }
@@ -275,8 +290,10 @@ async function speak(text){
     const ct=r.headers.get('Content-Type')||'';
     if(!r.ok||!ct.includes('audio')) throw new Error('no audio');
     const blob=await r.blob();
-    currentAudio=new Audio(URL.createObjectURL(blob));
-    currentAudio.play();
+    const url=URL.createObjectURL(blob);
+    currentAudio=new Audio(url);
+    currentAudio.onended=()=>URL.revokeObjectURL(url);
+    currentAudio.play().catch(()=>{ browserSpeak(text); });
   }catch(e){
     browserSpeak(text);
   }
