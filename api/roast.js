@@ -35,6 +35,7 @@ export default async function handler(req, res) {
         model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
         max_tokens: 300,
         temperature: 1,
+        system: "You output exactly one JSON object and nothing else. No commentary before or after. No multiple options. One object: {\"line\":\"...\",\"target\":\"...\"}",
         messages: [
           {
             role: "user",
@@ -66,7 +67,8 @@ export default async function handler(req, res) {
       line = parsed.line;
       target = parsed.target;
     } catch (_) {
-      const m = text.match(/\{[\s\S]*\}/);
+      // Extract the first complete JSON object only (non-greedy, stops at first closing brace match)
+      const m = text.match(/\{[^{}]*\}/);
       if (m) {
         try { const parsed = JSON.parse(m[0]); line = parsed.line; target = parsed.target; } catch (__) {}
       }
