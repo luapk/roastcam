@@ -90,9 +90,33 @@
   footer{margin-top:54px;font-family:'Jost',sans-serif;font-weight:300;font-size:12px;color:rgba(255,255,255,.2);letter-spacing:.05em;line-height:1.7}
   canvas{display:none}
   @media(max-width:560px){.letter{padding:38px 26px 50px}}
+
+  /* gate */
+  #gate{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+    background:radial-gradient(120% 80% at 50% -5%, #2a2200 0%, var(--surface) 40%, var(--bg) 80%);padding:24px}
+  #gate h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,6vw,52px);letter-spacing:.1em;color:var(--yellow)}
+  #gate p{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-dim);font-size:18px}
+  #gate-form{display:flex;gap:0;border-radius:48px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 0 2px var(--yellow)}
+  #gate-input{border:0;outline:0;padding:14px 22px;font-family:'Jost',sans-serif;font-size:16px;letter-spacing:.06em;
+    background:#17172a;color:var(--ink);width:180px}
+  #gate-input::placeholder{color:var(--ink-dim)}
+  #gate-btn{border:0;cursor:pointer;padding:14px 24px;background:var(--yellow);color:#0e0e18;
+    font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.08em}
+  #gate-btn:hover{background:#ffe033}
+  #gate-error{font-family:'Jost',sans-serif;font-size:13px;color:var(--orange);min-height:18px;letter-spacing:.04em}
 </style>
 </head>
 <body>
+  <div id="gate">
+    <h2>🐾 Cats Will Say Anything</h2>
+    <p>The cat requires a password.</p>
+    <form id="gate-form">
+      <input id="gate-input" type="password" placeholder="password" autocomplete="off" />
+      <button id="gate-btn" type="submit">Enter</button>
+    </form>
+    <p id="gate-error"></p>
+  </div>
+
   <div class="wrap">
     <div class="crest">
       <!-- cat face -->
@@ -169,6 +193,25 @@
   <canvas id="canvas"></canvas>
 
 <script>
+/* ---------- gate ---------- */
+(function(){
+  const gate=document.getElementById('gate');
+  const form=document.getElementById('gate-form');
+  const input=document.getElementById('gate-input');
+  const err=document.getElementById('gate-error');
+  if(sessionStorage.getItem('cwsa-auth')==='1'){ gate.style.display='none'; return; }
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    if(input.value.trim().toLowerCase()==='treats'){
+      sessionStorage.setItem('cwsa-auth','1');
+      gate.style.display='none';
+    } else {
+      err.textContent='The cat is unimpressed. Try again.';
+      input.value=''; input.focus();
+    }
+  });
+})();
+
 const video=document.getElementById('cam');
 const canvas=document.getElementById('canvas');
 const lineEl=document.getElementById('line');
